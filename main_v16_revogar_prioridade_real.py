@@ -223,12 +223,13 @@ def ler_pdf(event=None):
         lbl_numero.config(text=f"Número: {numero}")
         lbl_ano.config(text=f"Ano: {ano}")
         lbl_tipo.config(text=f"Tipo: {tipo}")
-        lbl_nome.config(text=f"Nome: {nome}")
-       documento = identificar_documento(" ".join(fitz.open(pdf)[0].get_text().split()))
+                lbl_nome.config(text=f"Nome: {nome}")
 
-lbl_novo.config(
-    text=f"{documento} Nº {numero}-{ano} - {tipo}{(' ' + formatar_nome(nome)) if nome else ''}.pdf"
-)
+        documento = "PORTARIA"
+
+        lbl_novo.config(
+            text=f"{documento} Nº {numero}-{ano} - {tipo}{(' ' + formatar_nome(nome)) if nome else ''}.pdf"
+        )
     except Exception as e:
         messagebox.showerror("Erro", str(e))
 

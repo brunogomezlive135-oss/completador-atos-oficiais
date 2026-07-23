@@ -45,11 +45,11 @@ def identificar_documento(texto):
 def extrair_numero_ano(texto, documento):
     texto = re.sub(r"\s+", " ", texto)
     padroes = [
-        r"documento\s*N\.?\s*[º°o]?\s*([\d\.]{1,7})\s*/\s*(\d{4})",
-        r"documento\s*N[º°]\s*([\d\.]{1,7})\s*/\s*(\d{4})",
-        r"documento\s+N[Oo]\s*([\d\.]{1,7})\s*/\s*(\d{4})",
-        r"documento.*?([\d\.]{1,7})\s*/\s*(\d{4})",
-    ]
+    rf"{re.escape(documento)}\s*N\.?\s*[º°o]?\s*([\d\.]{{1,7}})\s*/\s*(\d{{4}})",
+    rf"{re.escape(documento)}\s*N[º°]\s*([\d\.]{{1,7}})\s*/\s*(\d{{4}})",
+    rf"{re.escape(documento)}\s+N[Oo]\s*([\d\.]{{1,7}})\s*/\s*(\d{{4}})",
+    rf"{re.escape(documento)}.*?([\d\.]{{1,7}})\s*/\s*(\d{{4}})",
+]
     for p in padroes:
         m = re.search(p, texto, re.I)
         if m:
@@ -195,15 +195,20 @@ def nome_disponivel(dest):
         i+=1
 
 def dados_pdf(pdf):
-    doc=fitz.open(pdf)
-    texto="".join(p.get_text() for p in doc)
+    doc = fitz.open(pdf)
+    texto = "".join(p.get_text() for p in doc)
     doc.close()
+
     documento = identificar_documento(texto)
-numero, ano = extrair_numero_ano(texto, documento)
+    numero, ano = extrair_numero_ano(texto, documento)
 
     if "REVOGAR" in texto.upper():
-        tipo=extrair_revogacao(texto)
-        return numero,ano,"",tipo
+        tipo = extrair_revogacao(texto)
+        return numero, ano, "", tipo
+
+    tipo = extrair_tipo(texto)
+    nome = extrair_nome(texto)
+    return numero, ano, nome, tipo
 
     tipo=extrair_tipo(texto)
     nome=extrair_nome(texto)
@@ -219,7 +224,11 @@ def ler_pdf(event=None):
         lbl_ano.config(text=f"Ano: {ano}")
         lbl_tipo.config(text=f"Tipo: {tipo}")
         lbl_nome.config(text=f"Nome: {nome}")
-        lbl_novo.config(text=f"PORTARIA Nº {numero}-{ano} - {tipo}{(' ' + formatar_nome(nome)) if nome else ''}.pdf")
+       documento = identificar_documento(" ".join(fitz.open(pdf)[0].get_text().split()))
+
+lbl_novo.config(
+    text=f"{documento} Nº {numero}-{ano} - {tipo}{(' ' + formatar_nome(nome)) if nome else ''}.pdf"
+)
     except Exception as e:
         messagebox.showerror("Erro", str(e))
 

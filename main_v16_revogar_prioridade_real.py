@@ -222,7 +222,7 @@ def ler_pdf(event=None):
         numero,ano,nome,tipo=dados_pdf(pdf)
         lbl_numero.config(text=f"Número: {numero}")
         lbl_ano.config(text=f"Ano: {ano}")
-              lbl_tipo.config(text=f"Tipo: {tipo}")
+        lbl_tipo.config(text=f"Tipo: {tipo}")
         lbl_nome.config(text=f"Nome: {nome}")
 
         documento = "PORTARIA"

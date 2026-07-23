@@ -20,15 +20,35 @@ def formatar_nome(nome):
             palavras.append(p.capitalize())
     return " ".join(palavras)
 
+def identificar_documento(texto):
+    texto = re.sub(r"\s+", " ", texto.upper())
 
+    documentos = [
+        "PROJETO DE RESOLUÇÃO",
+        "PROJETO DE DECRETO",
+        "PROJETO DE LEI",
+        "RESOLUÇÃO",
+        "DECRETO",
+        "PORTARIA",
+        "LEI COMPLEMENTAR",
+        "LEI",
+        "OFÍCIO",
+        "OFICIO",
+    ]
 
-def extrair_numero_ano(texto):
+    for doc in documentos:
+        if doc in texto:
+            return doc.replace("OFICIO", "OFÍCIO")
+
+    return "DOCUMENTO"
+
+def extrair_numero_ano(texto, documento):
     texto = re.sub(r"\s+", " ", texto)
     padroes = [
-        r"PORTARIA\s*N\.?\s*[º°o]?\s*([\d\.]{1,7})\s*/\s*(\d{4})",
-        r"PORTARIA\s*N[º°]\s*([\d\.]{1,7})\s*/\s*(\d{4})",
-        r"PORTARIA\s+N[Oo]\s*([\d\.]{1,7})\s*/\s*(\d{4})",
-        r"PORTARIA.*?([\d\.]{1,7})\s*/\s*(\d{4})",
+        r"documento\s*N\.?\s*[º°o]?\s*([\d\.]{1,7})\s*/\s*(\d{4})",
+        r"documento\s*N[º°]\s*([\d\.]{1,7})\s*/\s*(\d{4})",
+        r"documento\s+N[Oo]\s*([\d\.]{1,7})\s*/\s*(\d{4})",
+        r"documento.*?([\d\.]{1,7})\s*/\s*(\d{4})",
     ]
     for p in padroes:
         m = re.search(p, texto, re.I)
@@ -178,7 +198,8 @@ def dados_pdf(pdf):
     doc=fitz.open(pdf)
     texto="".join(p.get_text() for p in doc)
     doc.close()
-    numero,ano=extrair_numero_ano(texto)
+    documento = identificar_documento(texto)
+numero, ano = extrair_numero_ano(texto, documento)
 
     if "REVOGAR" in texto.upper():
         tipo=extrair_revogacao(texto)

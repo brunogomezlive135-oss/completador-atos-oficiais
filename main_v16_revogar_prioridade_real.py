@@ -23,39 +23,58 @@ def formatar_nome(nome):
 def identificar_documento(texto):
     texto = re.sub(r"\s+", " ", texto.upper())
 
-    documentos = [
-        "PROJETO DE RESOLUÇÃO",
-        "PROJETO DE DECRETO",
-        "PROJETO DE LEI",
-        "RESOLUÇÃO",
-        "DECRETO",
-        "PORTARIA",
-        "LEI COMPLEMENTAR",
-        "LEI",
-        "OFÍCIO",
-        "OFICIO",
-    ]
+   DOCUMENTOS = [
+    "PROJETO DE RESOLUÇÃO",
+    "PROJETO DE DECRETO",
+    "PROJETO DE LEI",
+    "LEI COMPLEMENTAR",
+    "RESOLUÇÃO",
+    "DECRETO",
+    "PORTARIA",
+    "LEI",
+    "OFÍCIO",
+    "OFICIO",
+    "EDITAL",
+    "REQUERIMENTO",
+    "INDICAÇÃO",
+    "INDICACAO",
+    "MOÇÃO",
+    "MOCAO",
+    "ATA",
+]
 
-    for doc in documentos:
-        if doc in texto:
-            return doc.replace("OFICIO", "OFÍCIO")
+for documento in DOCUMENTOS:
+    if documento in texto:
+        return (
+            documento.replace("OFICIO", "OFÍCIO")
+                     .replace("INDICACAO", "INDICAÇÃO")
+                     .replace("MOCAO", "MOÇÃO")
+        )
 
-    return "DOCUMENTO"
+return None
 
 def extrair_numero_ano(texto, documento):
     texto = re.sub(r"\s+", " ", texto)
+
+    if not documento:
+        return "-", "-"
+
+    doc_regex = re.escape(documento).replace(r"\ ", r"\s+")
+
     padroes = [
-    rf"{re.escape(documento)}\s*N\.?\s*[º°o]?\s*([\d\.]{{1,7}})\s*/\s*(\d{{4}})",
-    rf"{re.escape(documento)}\s*N[º°]\s*([\d\.]{{1,7}})\s*/\s*(\d{{4}})",
-    rf"{re.escape(documento)}\s+N[Oo]\s*([\d\.]{{1,7}})\s*/\s*(\d{{4}})",
-    rf"{re.escape(documento)}.*?([\d\.]{{1,7}})\s*/\s*(\d{{4}})",
-]
-    for p in padroes:
-        m = re.search(p, texto, re.I)
+        rf"{doc_regex}\s*N[º°o\.\s]*([\d\.]+)\s*/\s*(\d{{4}})",
+        rf"{doc_regex}\s*N[º°o\.\s]*([\d\.]+)\s*-\s*(\d{{4}})",
+        rf"{doc_regex}.*?([\d\.]+)\s*/\s*(\d{{4}})",
+        rf"{doc_regex}.*?([\d\.]+)\s*-\s*(\d{{4}})",
+    ]
+
+    for padrao in padroes:
+        m = re.search(padrao, texto, re.I | re.S)
         if m:
             numero = m.group(1).replace(".", "")
-            numero = numero.lstrip("0") or "0"
-            return numero, m.group(2)
+            ano = m.group(2)
+            return numero.zfill(3), ano
+
     return "-", "-"
 
 def limpar_nome(nome):

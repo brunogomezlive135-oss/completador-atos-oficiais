@@ -54,26 +54,55 @@ def identificar_documento(texto):
     return None
 
 def extrair_numero_ano(texto, documento):
-    texto = re.sub(r"\s+", " ", texto)
-
     if not documento:
         return "-", "-"
+
+    # Normaliza espaços
+    texto = re.sub(r"\s+", " ", texto)
+
+    # Analisa primeiro apenas o cabeçalho
+    cabecalho = texto[:1200]
 
     doc_regex = re.escape(documento).replace(r"\ ", r"\s+")
 
     padroes = [
-        rf"{doc_regex}\s*N[º°o\.\s]*([\d\.]+)\s*/\s*(\d{{4}})",
-        rf"{doc_regex}\s*N[º°o\.\s]*([\d\.]+)\s*-\s*(\d{{4}})",
-        rf"{doc_regex}.*?([\d\.]+)\s*/\s*(\d{{4}})",
-        rf"{doc_regex}.*?([\d\.]+)\s*-\s*(\d{{4}})",
+
+        # PORTARIA Nº 001/2025
+        rf"{doc_regex}\s*(?:N|Nº|N°|NO|N\.)?\s*([\d]{{1,6}})\s*/\s*(20\d{{2}})",
+
+        # PORTARIA Nº 001-2025
+        rf"{doc_regex}\s*(?:N|Nº|N°|NO|N\.)?\s*([\d]{{1,6}})\s*-\s*(20\d{{2}})",
+
+        # PORTARIA 001/2025
+        rf"{doc_regex}\s+([\d]{{1,6}})\s*/\s*(20\d{{2}})",
+
+        # PORTARIA 001-2025
+        rf"{doc_regex}\s+([\d]{{1,6}})\s*-\s*(20\d{{2}})",
     ]
 
+    # ===== procura apenas no cabeçalho =====
+
     for padrao in padroes:
-        m = re.search(padrao, texto, re.I | re.S)
+
+        m = re.search(padrao, cabecalho, re.I)
+
         if m:
-            numero = m.group(1).replace(".", "")
+            numero = m.group(1).zfill(3)
             ano = m.group(2)
-            return numero.zfill(3), ano
+
+            return numero, ano
+
+    # ===== fallback: documento inteiro =====
+
+    for padrao in padroes:
+
+        m = re.search(padrao, texto, re.I)
+
+        if m:
+            numero = m.group(1).zfill(3)
+            ano = m.group(2)
+
+            return numero, ano
 
     return "-", "-"
 

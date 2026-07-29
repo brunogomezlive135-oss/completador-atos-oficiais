@@ -280,7 +280,7 @@ def dados_pdf(pdf):
     doc.close()
     
     if not texto.strip():
-    return None, "-", "-", "", ""
+         return None, "-", "-", "", ""
     
     documento = identificar_documento(texto)
     numero, ano = extrair_numero_ano(texto, documento)

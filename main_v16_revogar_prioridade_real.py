@@ -260,33 +260,62 @@ def ler_pdf(event=None):
 
 def renomear_todos():
     global lista_pdfs
+
     if not lista_pdfs:
         return
-    erros=[]
-    barra["maximum"]=len(lista_pdfs)
-    ren=0
-    for i,pdf in enumerate(lista_pdfs,1):
+
+    erros = []
+    barra["maximum"] = len(lista_pdfs)
+    ren = 0
+
+    for i, pdf in enumerate(lista_pdfs, 1):
+
         try:
-            numero,ano,nome,tipo=dados_pdf(pdf)
-            if "-" in (numero,ano,nome):
-                raise Exception("Dados não encontrados")
-            destino = pdf.with_name(f"PORTARIA Nº {numero}-{ano} - {tipo}{(' ' + formatar_nome(nome)) if nome else ''}.pdf")
-            destino=nome_disponivel(destino)
+
+            documento, numero, ano, nome, tipo = dados_pdf(pdf)
+
+            if documento is None:
+                raise Exception("Documento não identificado")
+
+            if numero == "-" or ano == "-":
+                raise Exception("Número ou ano não encontrado")
+
+            # ===== PORTARIAS =====
+            if documento == "PORTARIA":
+
+                novo_nome = (
+                    f"PORTARIA Nº {numero}-{ano}"
+                    f"{(' - ' + tipo) if tipo else ''}"
+                    f"{(' ' + formatar_nome(nome)) if nome else ''}.pdf"
+                )
+
+            # ===== TODOS OS DEMAIS =====
+            else:
+
+                novo_nome = f"{documento} Nº {numero}-{ano}.pdf"
+
+            destino = nome_disponivel(pdf.with_name(novo_nome))
             pdf.rename(destino)
-            ren+=1
+
+            ren += 1
+
         except Exception as e:
             erros.append(f"{pdf.name} -> {e}")
-        barra["value"]=i
+
+        barra["value"] = i
         lbl_prog.config(text=f"{i}/{len(lista_pdfs)}")
         janela.update_idletasks()
-    if pasta_atual:
-        lista_pdfs=sorted(pasta_atual.glob("*.pdf"))
-        carregar_lista()
-    msg=f"Renomeados: {ren}"
-    if erros:
-        msg+="\n\nErros:\n"+"\n".join(erros)
-    messagebox.showinfo("Concluído",msg)
 
+    if pasta_atual:
+        lista_pdfs = sorted(pasta_atual.glob("*.pdf"))
+        carregar_lista()
+
+    msg = f"Renomeados: {ren}"
+
+    if erros:
+        msg += "\n\nErros:\n" + "\n".join(erros)
+
+    messagebox.showinfo("Concluído", msg)
 janela=tk.Tk()
 janela.title("Completador de Portarias")
 janela.geometry("950x850")

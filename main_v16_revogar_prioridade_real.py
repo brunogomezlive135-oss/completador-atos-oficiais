@@ -24,83 +24,116 @@ def identificar_documento(texto):
     texto = re.sub(r"\s+", " ", texto.upper())
 
     documentos = [
-        "PROJETO DE RESOLUÇÃO",
-        "PROJETO DE DECRETO",
-        "PROJETO DE LEI",
-        "LEI COMPLEMENTAR",
-        "RESOLUÇÃO",
-        "DECRETO",
-        "PORTARIA",
-        "LEI",
-        "OFÍCIO",
-        "OFICIO",
-        "EDITAL",
-        "REQUERIMENTO",
-        "INDICAÇÃO",
-        "INDICACAO",
-        "MOÇÃO",
-        "MOCAO",
-        "ATA",
-    ]
+    "PROJETO DE RESOLUÇÃO",
+    "PROJETO DE DECRETO",
+    "PROJETO DE LEI",
+
+    "LEI COMPLEMENTAR",
+
+    "DECRETO MUNICIPAL",
+    "DECRETO",
+
+    "LEI MUNICIPAL",
+    "LEI",
+
+    "PORTARIA",
+
+    "RESOLUÇÃO",
+
+    "OFÍCIO",
+    "OFICIO",
+
+    "EDITAL",
+    "REQUERIMENTO",
+    "INDICAÇÃO",
+    "INDICACAO",
+    "MOÇÃO",
+    "MOCAO",
+    "ATA",
+]
 
     for documento in documentos:
         if documento in texto:
-            return (
-                documento.replace("OFICIO", "OFÍCIO")
-                         .replace("INDICACAO", "INDICAÇÃO")
-                         .replace("MOCAO", "MOÇÃO")
-            )
+         return (
+    documento
+    .replace("DECRETO MUNICIPAL", "DECRETO")
+    .replace("LEI MUNICIPAL", "LEI")
+    .replace("OFICIO", "OFÍCIO")
+    .replace("INDICACAO", "INDICAÇÃO")
+    .replace("MOCAO", "MOÇÃO")
+)
 
     return None
 
 def extrair_numero_ano(texto, documento):
+
     if not documento:
         return "-", "-"
 
-    # Normaliza espaços
     texto = re.sub(r"\s+", " ", texto)
 
-    # Analisa primeiro apenas o cabeçalho
-    cabecalho = texto[:1200]
+    # Analisa somente o início do documento
+    cabecalho = texto[:1500].upper()
 
-    doc_regex = re.escape(documento).replace(r"\ ", r"\s+")
+    aliases = {
+        "PORTARIA": [
+            "PORTARIA"
+        ],
 
-    padroes = [
+        "DECRETO": [
+            "DECRETO MUNICIPAL",
+            "DECRETO"
+        ],
 
-        # PORTARIA Nº 001/2025
-        rf"{doc_regex}\s*(?:N|Nº|N°|NO|N\.)?\s*([\d]{{1,6}})\s*/\s*(20\d{{2}})",
+        "LEI": [
+            "LEI MUNICIPAL",
+            "LEI"
+        ],
 
-        # PORTARIA Nº 001-2025
-        rf"{doc_regex}\s*(?:N|Nº|N°|NO|N\.)?\s*([\d]{{1,6}})\s*-\s*(20\d{{2}})",
+        "LEI COMPLEMENTAR": [
+            "LEI COMPLEMENTAR"
+        ],
 
-        # PORTARIA 001/2025
-        rf"{doc_regex}\s+([\d]{{1,6}})\s*/\s*(20\d{{2}})",
+        "RESOLUÇÃO": [
+            "RESOLUÇÃO"
+        ],
 
-        # PORTARIA 001-2025
-        rf"{doc_regex}\s+([\d]{{1,6}})\s*-\s*(20\d{{2}})",
-    ]
+        "PROJETO DE LEI": [
+            "PROJETO DE LEI"
+        ],
 
-    # ===== procura apenas no cabeçalho =====
+        "PROJETO DE DECRETO": [
+            "PROJETO DE DECRETO"
+        ],
 
-    for padrao in padroes:
+        "PROJETO DE RESOLUÇÃO": [
+            "PROJETO DE RESOLUÇÃO"
+        ]
+    }
+
+    for titulo in aliases.get(documento, [documento]):
+
+        titulo = re.escape(titulo)
+
+        padrao = (
+            rf"{titulo}"
+            rf".{{0,40}}?"
+            rf"N[º°o.]?\s*"
+            rf"(\d{{1,6}})"
+            rf"\s*/\s*"
+            rf"(\d{{2,4}})"
+        )
 
         m = re.search(padrao, cabecalho, re.I)
 
         if m:
+
             numero = m.group(1).zfill(3)
+
             ano = m.group(2)
 
-            return numero, ano
-
-    # ===== fallback: documento inteiro =====
-
-    for padrao in padroes:
-
-        m = re.search(padrao, texto, re.I)
-
-        if m:
-            numero = m.group(1).zfill(3)
-            ano = m.group(2)
+            if len(ano) == 2:
+                ano = "20" + ano
 
             return numero, ano
 
@@ -245,7 +278,10 @@ def dados_pdf(pdf):
     doc = fitz.open(pdf)
     texto = "".join(p.get_text() for p in doc)
     doc.close()
-
+    
+    if not texto.strip():
+    return None, "-", "-", "", ""
+    
     documento = identificar_documento(texto)
     numero, ano = extrair_numero_ano(texto, documento)
 
@@ -304,8 +340,7 @@ def renomear_todos():
             documento, numero, ano, nome, tipo = dados_pdf(pdf)
 
             if documento is None:
-                raise Exception("Documento não identificado")
-
+                continue
             if numero == "-" or ano == "-":
                 raise Exception("Número ou ano não encontrado")
 

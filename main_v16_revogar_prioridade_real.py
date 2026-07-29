@@ -244,7 +244,7 @@ def ler_pdf(event=None):
     if not sel:return
     pdf=lista_pdfs[sel[0]]
     try:
-       documento, numero, ano, nome, tipo = dados_pdf(pdf)
+        documento, numero, ano, nome, tipo = dados_pdf(pdf)
         lbl_numero.config(text=f"Número: {numero}")
         lbl_ano.config(text=f"Ano: {ano}")
         lbl_tipo.config(text=f"Tipo: {tipo}")

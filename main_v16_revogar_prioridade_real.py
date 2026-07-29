@@ -23,35 +23,35 @@ def formatar_nome(nome):
 def identificar_documento(texto):
     texto = re.sub(r"\s+", " ", texto.upper())
 
-   DOCUMENTOS = [
-    "PROJETO DE RESOLUÇÃO",
-    "PROJETO DE DECRETO",
-    "PROJETO DE LEI",
-    "LEI COMPLEMENTAR",
-    "RESOLUÇÃO",
-    "DECRETO",
-    "PORTARIA",
-    "LEI",
-    "OFÍCIO",
-    "OFICIO",
-    "EDITAL",
-    "REQUERIMENTO",
-    "INDICAÇÃO",
-    "INDICACAO",
-    "MOÇÃO",
-    "MOCAO",
-    "ATA",
-]
+    documentos = [
+        "PROJETO DE RESOLUÇÃO",
+        "PROJETO DE DECRETO",
+        "PROJETO DE LEI",
+        "LEI COMPLEMENTAR",
+        "RESOLUÇÃO",
+        "DECRETO",
+        "PORTARIA",
+        "LEI",
+        "OFÍCIO",
+        "OFICIO",
+        "EDITAL",
+        "REQUERIMENTO",
+        "INDICAÇÃO",
+        "INDICACAO",
+        "MOÇÃO",
+        "MOCAO",
+        "ATA",
+    ]
 
-for documento in DOCUMENTOS:
-    if documento in texto:
-        return (
-            documento.replace("OFICIO", "OFÍCIO")
-                     .replace("INDICACAO", "INDICAÇÃO")
-                     .replace("MOCAO", "MOÇÃO")
-        )
+    for documento in documentos:
+        if documento in texto:
+            return (
+                documento.replace("OFICIO", "OFÍCIO")
+                         .replace("INDICACAO", "INDICAÇÃO")
+                         .replace("MOCAO", "MOÇÃO")
+            )
 
-return None
+    return None
 
 def extrair_numero_ano(texto, documento):
     texto = re.sub(r"\s+", " ", texto)

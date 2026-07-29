@@ -212,7 +212,6 @@ def nome_disponivel(dest):
         if not novo.exists():
             return novo
         i+=1
-
 def dados_pdf(pdf):
     doc = fitz.open(pdf)
     texto = "".join(p.get_text() for p in doc)
@@ -221,24 +220,31 @@ def dados_pdf(pdf):
     documento = identificar_documento(texto)
     numero, ano = extrair_numero_ano(texto, documento)
 
-    if "REVOGAR" in texto.upper():
-        tipo = extrair_revogacao(texto)
-        return numero, ano, "", tipo
+    # Se não conseguiu identificar o documento
+    if documento is None:
+        return None, numero, ano, "-", "-"
 
-    tipo = extrair_tipo(texto)
-    nome = extrair_nome(texto)
-    return numero, ano, nome, tipo
+    # Fluxo específico para Portarias
+    if documento == "PORTARIA":
 
-    tipo=extrair_tipo(texto)
-    nome=extrair_nome(texto)
-    return numero,ano,nome,tipo
+        if "REVOGAR" in texto.upper():
+            tipo = extrair_revogacao(texto)
+            return documento, numero, ano, "", tipo
+
+        tipo = extrair_tipo(texto)
+        nome = extrair_nome(texto)
+
+        return documento, numero, ano, nome, tipo
+
+    # Todos os demais documentos
+    return documento, numero, ano, "", ""
 
 def ler_pdf(event=None):
     sel=lista.curselection()
     if not sel:return
     pdf=lista_pdfs[sel[0]]
     try:
-        numero,ano,nome,tipo=dados_pdf(pdf)
+       documento, numero, ano, nome, tipo = dados_pdf(pdf)
         lbl_numero.config(text=f"Número: {numero}")
         lbl_ano.config(text=f"Ano: {ano}")
         lbl_tipo.config(text=f"Tipo: {tipo}")

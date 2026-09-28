@@ -30,8 +30,8 @@ class Aplicativo:
     def __init__(self, root):
         self.root = root
         self.root.title("Detector de Atos Oficiais")
-        self.root.geometry("1280x760")
-        self.root.minsize(980, 620)
+        self.root.geometry("1120x650")
+        self.root.minsize(900, 560)
         self.root.configure(bg=BG)
 
         self.arquivos = []
@@ -50,7 +50,7 @@ class Aplicativo:
 
         style.configure("TFrame", background=BG)
         style.configure("Title.TLabel", background=BG, foreground=TEXT,
-                        font=("Segoe UI", 23, "bold"))
+                        font=("Segoe UI", 15, "bold"))
         style.configure("Subtitle.TLabel", background=BG, foreground=MUTED,
                         font=("Segoe UI", 10))
         style.configure("Primary.TButton", background=ACCENT, foreground="white",
@@ -66,7 +66,7 @@ class Aplicativo:
                   background=[("active", "#20304c"), ("disabled", "#172238")],
                   foreground=[("disabled", "#66758c")])
         style.configure("Treeview", background=CARD, fieldbackground=CARD,
-                        foreground=TEXT, rowheight=34, borderwidth=0,
+                        foreground=TEXT, rowheight=28, borderwidth=0,
                         font=("Segoe UI", 9))
         style.configure("Treeview.Heading", background=CARD2, foreground=MUTED,
                         relief="flat", font=("Segoe UI", 9, "bold"), padding=8)
@@ -77,12 +77,12 @@ class Aplicativo:
 
     def montar_interface(self):
         main = tk.Frame(self.root, bg=BG)
-        main.pack(fill="both", expand=True, padx=26, pady=22)
+        main.pack(fill="both", expand=True, padx=18, pady=14)
 
         header = tk.Frame(main, bg=BG)
-        header.pack(fill="x", pady=(0, 18))
+        header.pack(fill="x", pady=(0, 10))
 
-        logo = tk.Frame(header, bg=ACCENT, width=50, height=50)
+        logo = tk.Frame(header, bg=ACCENT, width=42, height=42)
         logo.pack(side="left", padx=(0, 13))
         logo.pack_propagate(False)
         tk.Label(logo, text="DA", bg=ACCENT, fg="white",
@@ -100,12 +100,12 @@ class Aplicativo:
 
         entrada = tk.Frame(main, bg=CARD, highlightbackground=BORDER,
                            highlightthickness=1)
-        entrada.pack(fill="x", pady=(0, 14))
+        entrada.pack(fill="x", pady=(0, 10))
 
         tk.Label(entrada, text="INSERIR DOCUMENTOS", bg=CARD, fg=MUTED,
                  font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=18, pady=(15, 2))
         tk.Label(entrada, text="Adicione PDFs ou pastas", bg=CARD, fg=TEXT,
-                 font=("Segoe UI", 14, "bold")).pack(anchor="w", padx=18)
+                 font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=18)
         tk.Label(
             entrada,
             text="Você pode selecionar arquivos, selecionar uma pasta ou arrastar e soltar diretamente na área abaixo.",
@@ -132,7 +132,7 @@ class Aplicativo:
 
         self.drop_zone = tk.Frame(
             entrada, bg="#0e1a2d", highlightbackground="#2a4770",
-            highlightthickness=1, height=72)
+            highlightthickness=1, height=48)
         self.drop_zone.pack(fill="x", padx=18, pady=(0, 16))
         self.drop_zone.pack_propagate(False)
 
@@ -140,7 +140,7 @@ class Aplicativo:
             self.drop_zone,
             text="⇩   Solte aqui seus PDFs ou pastas",
             bg="#0e1a2d", fg="#b8c8df",
-            font=("Segoe UI", 11, "bold"))
+            font=("Segoe UI", 10, "bold"))
         self.drop_label.pack(expand=True)
 
         if TkinterDnD is not None:
@@ -149,7 +149,7 @@ class Aplicativo:
                 widget.dnd_bind("<<Drop>>", self.drop)
 
         resumo = tk.Frame(main, bg=BG)
-        resumo.pack(fill="x", pady=(0, 14))
+        resumo.pack(fill="x", pady=(0, 10))
         self.card_arquivos = self.criar_card(resumo, "0", "PDFs na fila")
         self.card_arquivos.pack(side="left", fill="x", expand=True, padx=(0, 8))
         self.card_altas = self.criar_card(resumo, "0", "Alta confiança")
@@ -162,17 +162,25 @@ class Aplicativo:
         painel.pack(fill="both", expand=True)
 
         barra = tk.Frame(painel, bg=CARD)
-        barra.pack(fill="x", padx=16, pady=(12, 8))
+        barra.pack(fill="x", padx=12, pady=(8, 6))
         tk.Label(barra, text="RESULTADOS DA ANÁLISE", bg=CARD, fg=TEXT,
-                 font=("Segoe UI", 11, "bold")).pack(side="left")
+                 font=("Segoe UI", 10, "bold")).pack(side="left")
+
+        acoes = tk.Frame(barra, bg=CARD)
+        acoes.pack(side="right")
+
+        self.btn_renomear = ttk.Button(
+            acoes, text="Renomear alta confiança", style="Primary.TButton",
+            command=self.renomear, state="disabled")
+        self.btn_renomear.pack(side="right", padx=(8, 0))
 
         self.btn_analisar = ttk.Button(
-            barra, text="Analisar documentos", style="Primary.TButton",
+            acoes, text="Analisar documentos", style="Primary.TButton",
             command=self.iniciar, state="disabled")
         self.btn_analisar.pack(side="right")
 
         tabela_frame = tk.Frame(painel, bg=CARD)
-        tabela_frame.pack(fill="both", expand=True, padx=16, pady=(0, 10))
+        tabela_frame.pack(fill="both", expand=True, padx=12, pady=(0, 6))
 
         colunas = ("arquivo", "tipo", "numero", "ano", "confianca", "nome")
         self.tabela = ttk.Treeview(tabela_frame, columns=colunas, show="headings")
@@ -182,7 +190,7 @@ class Aplicativo:
             "numero": ("Nº", 65),
             "ano": ("Ano", 65),
             "confianca": ("Confiança", 90),
-            "nome": ("Nome sugerido", 650),
+            "nome": ("Nome sugerido", 520),
         }
         for coluna, (titulo, largura) in configuracoes.items():
             self.tabela.heading(coluna, text=titulo)
@@ -204,7 +212,7 @@ class Aplicativo:
         self.tabela.tag_configure("baixa", foreground=RED)
 
         rodape = tk.Frame(main, bg=BG)
-        rodape.pack(fill="x", pady=(10, 0))
+        rodape.pack(fill="x", pady=(6, 0))
         self.progresso = ttk.Progressbar(
             rodape, style="Horizontal.TProgressbar", mode="determinate")
         self.progresso.pack(side="left", fill="x", expand=True, padx=(0, 12))
@@ -213,17 +221,13 @@ class Aplicativo:
                                bg=BG, fg=MUTED, font=("Segoe UI", 9))
         self.status.pack(side="left", padx=(0, 12))
 
-        self.btn_renomear = ttk.Button(
-            rodape, text="Renomear alta confiança", style="Primary.TButton",
-            command=self.renomear, state="disabled")
-        self.btn_renomear.pack(side="right")
 
     def criar_card(self, parent, valor, texto):
         frame = tk.Frame(parent, bg=CARD, highlightbackground=BORDER,
-                         highlightthickness=1, height=74)
+                         highlightthickness=1, height=58)
         frame.pack_propagate(False)
         label = tk.Label(frame, text=valor, bg=CARD, fg=TEXT,
-                         font=("Segoe UI", 19, "bold"))
+                         font=("Segoe UI", 15, "bold"))
         label.pack(anchor="w", padx=15, pady=(10, 0))
         tk.Label(frame, text=texto, bg=CARD, fg=MUTED,
                  font=("Segoe UI", 9)).pack(anchor="w", padx=15)

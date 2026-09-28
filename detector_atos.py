@@ -82,14 +82,22 @@ def limpar_espacos(texto: str) -> str:
 ACRONIMOS = {"CNPJ","CPF","CNAE","CGM","SAMU","LDB","TCE","TCE-MA","FUNDEB","PNEERQ","PPP","MA"}
 
 def formatar_titulo(texto: str) -> str:
-    """Aplica a capitalização padronizada dos nomes dos arquivos."""
+    """
+    Formatação oficial dos nomes:
+    - palavras principais: Inicial Maiúscula;
+    - artigos, preposições e conjunções: minúsculas;
+    - siglas conhecidas: preservadas em maiúsculas.
+    """
     texto = limpar_espacos(texto)
     if not texto:
         return ""
 
+    palavras_minusculas = PALAVRAS_MINUSCULAS
+    siglas = {x.lower(): x for x in ACRONIMOS}
     saida = []
+
     for indice, palavra in enumerate(texto.split()):
-        m = re.match(r"^([^wÀ-ÿ]*)(.*?)([^wÀ-ÿ]*)$", palavra, re.UNICODE)
+        m = re.match(r"^([^\wÀ-ÿ]*)(.*?)([^\wÀ-ÿ]*)$", palavra, re.UNICODE)
         if not m:
             saida.append(palavra)
             continue
@@ -99,16 +107,17 @@ def formatar_titulo(texto: str) -> str:
 
         if not miolo:
             novo = ""
-        elif chave in {x.lower() for x in ACRONIMOS}:
-            novo = next(x for x in ACRONIMOS if x.lower() == chave)
-        elif indice > 0 and chave in PALAVRAS_MINUSCULAS:
+        elif chave in siglas:
+            novo = siglas[chave]
+        elif indice > 0 and chave in palavras_minusculas:
             novo = chave
         else:
-            novo = miolo[0].upper() + miolo[1:].lower()
+            novo = miolo[:1].upper() + miolo[1:].lower()
 
         saida.append(inicio + novo + fim)
 
     return " ".join(saida)
+
 
 
 def sanitizar_filename(nome: str) -> str:
@@ -158,16 +167,26 @@ def fazer_ocr(caminho: Path, max_paginas: int = 3, dpi: int = 220) -> str:
 def obter_texto(caminho: Path) -> tuple[str, bool]:
     texto = extrair_texto_pdf(caminho)
 
-    # Primeiro tenta texto nativo; OCR só quando necessário.
-    if len(re.findall(r"\w+", texto, re.UNICODE)) >= 20:
-        return texto, False
+    # Se o texto nativo parece completo, usa-o.
+    # Caso contrário, também tenta OCR. Isso é importante para PDFs
+    # mistos/digitalizados que possuem texto parcial ou incorreto.
+    palavras = len(re.findall(r"\w+", texto, re.UNICODE))
+    tem_sinal_ato = bool(re.search(
+        r"\b(?:lei|decreto|portaria|resolução|resolucao|"
+        r"indicação|indicacao|requerimento|pauta|ata)\b",
+        texto,
+        re.IGNORECASE,
+    ))
 
-    try:
-        ocr = fazer_ocr(caminho)
-        if len(ocr) > len(texto):
-            return ocr, True
-    except Exception:
-        pass
+    precisa_ocr = palavras < 20 or not tem_sinal_ato
+
+    if precisa_ocr:
+        try:
+            ocr = fazer_ocr(caminho)
+            if len(ocr) > len(texto) * 0.55:
+                return ocr, True
+        except Exception:
+            pass
 
     return texto, False
 
@@ -294,35 +313,41 @@ def extrair_vereador(texto: str) -> Optional[str]:
 # ============================================================
 
 def extrair_pessoa_portaria(texto: str, verbos: tuple[str, ...]) -> Optional[str]:
-    """Extrai a pessoa nomeada/exonerada do Art. 1º ou da ementa."""
+    """
+    Procura primeiro a pessoa no comando formal do ato (ex.: NOMEAR X,
+    EXONERAR X) e depois na ementa. Evita capturar palavras do cargo.
+    """
     padroes = []
 
     for verbo in verbos:
-        padroes.append(
+        padroes.extend([
             rf"\b{re.escape(verbo)}\b\s+(?:o|a)?\s*"
             rf"(?:Sr\.?|Sra\.?|Dr\.?|Dra\.?)?\s*"
-            rf"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){1,8})"
-        )
+            rf"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){{1,8}})",
+        ])
 
     if "exonerar" in verbos:
-        padroes.append(
+        padroes.extend([
             r"\bexonera(?:ção|cao)\b\s+(?:de\s+)?(?:ofício\s+)?"
             r"(?:do|da)\s+(?:Sr\.?|Sra\.?|Dr\.?|Dra\.?)?\s*"
-            r"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){1,8})"
-        )
+            r"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){1,8})",
+        ])
+
+    palavras_parada = re.compile(
+        r"\b(?:inscrito|inscrita|com|para|ao|à|no|na|ocupante|"
+        r"cargo|função|funcao|servidor|servidora|CPF|matrícula|"
+        r"matricula|lotado|lotada|exercício|exercicio|do quadro)\b",
+        re.IGNORECASE,
+    )
 
     for padrao in padroes:
         m = re.search(padrao, texto, re.IGNORECASE)
         if not m:
             continue
 
-        nome = re.split(
-            r"\b(?:inscrito|inscrita|com|para|ao|à|no|na|ocupante|cargo|função|funcao|servidor|servidora|CPF|matrícula|matricula)\b",
-            m.group(1),
-            maxsplit=1,
-            flags=re.IGNORECASE,
-        )[0].strip(" ,.-")
+        nome = palavras_parada.split(m.group(1), maxsplit=1)[0].strip(" ,.-")
 
+        # Evita capturar somente uma palavra.
         if len(nome.split()) >= 2:
             return formatar_titulo(nome)
 

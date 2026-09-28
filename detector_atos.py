@@ -323,6 +323,7 @@ def extrair_pessoa_portaria(texto: str, verbos: tuple[str, ...]) -> Optional[str
         padroes.extend([
             rf"\b{re.escape(verbo)}\b\s+(?:o|a)?\s*"
             rf"(?:Sr\.?|Sra\.?|Dr\.?|Dra\.?)?\s*"
+            rf"(?:servidor(?:a)?)?\s*"
             rf"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){{1,8}})",
         ])
 

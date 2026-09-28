@@ -1,8 +1,36 @@
 # Detector de Atos Oficiais
 
-Este repositório passa a ser dedicado exclusivamente ao projeto de **detecção, classificação e padronização de atos oficiais em PDF**.
+Este repositório é dedicado exclusivamente à **detecção, classificação e padronização de atos oficiais em PDF**.
 
-## O que já está previsto
+## Interface gráfica
+
+Para abrir o programa no Windows, dê dois cliques em:
+
+`iniciar_detector.bat`
+
+Também é possível abrir pelo terminal:
+
+```bat
+python app.py
+```
+
+A interface permite selecionar uma pasta, analisar os PDFs, conferir o tipo, número, ano, confiança e nome sugerido e, somente depois, renomear os resultados de alta confiança.
+
+## Instalação
+
+```bash
+pip install -r requirements.txt
+```
+
+O Tesseract OCR também precisa estar instalado no Windows.
+
+Se o Tesseract não estiver no PATH:
+
+```bat
+set TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+```
+
+## Detectores previstos
 
 ### Atos com número, ano e ementa
 - Lei Municipal
@@ -24,7 +52,7 @@ Este repositório passa a ser dedicado exclusivamente ao projeto de **detecção
 - Lotação
 - Licença-Prêmio
 - Tornar sem efeito
-- Outros subtipos serão acrescentados conforme os exemplos reais
+- Novos subtipos conforme os exemplos reais
 
 ### Documentos de sessão
 - Ata de Sessão Ordinária
@@ -38,36 +66,8 @@ Este repositório passa a ser dedicado exclusivamente ao projeto de **detecção
 ### Fallback
 - Outros Atos Administrativos
 
-## Instalação
-
-```bash
-pip install pymupdf pytesseract pillow
-```
-
-O Tesseract OCR deve estar instalado no Windows.
-
-Se o Tesseract não estiver no PATH:
-
-```bat
-set TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
-```
-
-## Testar
-
-Sem renomear:
-
-```bash
-python detector_atos.py "C:\caminho\dos\pdfs"
-```
-
-Renomeando somente resultados de alta confiança:
-
-```bash
-python detector_atos.py "C:\caminho\dos\pdfs" --renomear
-```
-
 ## Regra de segurança
 
-O nome original do PDF não é tratado como fonte confiável para ementa, autoria ou pessoa. O detector deve analisar o conteúdo do documento e usar OCR quando necessário.
+A análise deve usar o conteúdo do documento, e não confiar no nome original do PDF como fonte da ementa, autoria ou pessoa.
 
-A V1 é uma base de testes. Os detectores serão refinados com documentos reais.
+A V1 é uma base de testes e será refinada com documentos reais.

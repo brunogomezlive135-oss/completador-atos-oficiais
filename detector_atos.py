@@ -301,14 +301,14 @@ def extrair_pessoa_portaria(texto: str, verbos: tuple[str, ...]) -> Optional[str
         padroes.append(
             rf"\b{re.escape(verbo)}\b\s+(?:o|a)?\s*"
             rf"(?:Sr\.?|Sra\.?|Dr\.?|Dra\.?)?\s*"
-            rf"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){{1,8}})"
+            rf"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){1,8})"
         )
 
     if "exonerar" in verbos:
         padroes.append(
             r"\bexonera(?:ção|cao)\b\s+(?:de\s+)?(?:ofício\s+)?"
             r"(?:do|da)\s+(?:Sr\.?|Sra\.?|Dr\.?|Dra\.?)?\s*"
-            r"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){{1,8}})"
+            r"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){1,8})"
         )
 
     for padrao in padroes:

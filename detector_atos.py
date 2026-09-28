@@ -79,20 +79,17 @@ def limpar_espacos(texto: str) -> str:
     return re.sub(r"\s+", " ", texto or "").strip()
 
 
+ACRONIMOS = {"CNPJ","CPF","CNAE","CGM","SAMU","LDB","TCE","TCE-MA","FUNDEB","PNEERQ","PPP","MA"}
+
 def formatar_titulo(texto: str) -> str:
-    """
-    Palavras principais com inicial maiúscula.
-    Artigos, preposições e conjunções ficam minúsculos.
-    Nomes próprios recebem a mesma normalização.
-    """
+    """Aplica a capitalização padronizada dos nomes dos arquivos."""
     texto = limpar_espacos(texto)
     if not texto:
         return ""
 
     saida = []
-
     for indice, palavra in enumerate(texto.split()):
-        m = re.match(r"^([^\wÀ-ÿ]*)(.*?)([^\wÀ-ÿ]*)$", palavra, re.UNICODE)
+        m = re.match(r"^([^wÀ-ÿ]*)(.*?)([^wÀ-ÿ]*)$", palavra, re.UNICODE)
         if not m:
             saida.append(palavra)
             continue
@@ -100,14 +97,14 @@ def formatar_titulo(texto: str) -> str:
         inicio, miolo, fim = m.groups()
         chave = miolo.lower()
 
-        if indice > 0 and chave in PALAVRAS_MINUSCULAS:
+        if not miolo:
+            novo = ""
+        elif chave in {x.lower() for x in ACRONIMOS}:
+            novo = next(x for x in ACRONIMOS if x.lower() == chave)
+        elif indice > 0 and chave in PALAVRAS_MINUSCULAS:
             novo = chave
-        elif miolo.isupper() and len(miolo) > 1:
-            novo = miolo
-        elif miolo:
-            novo = miolo[0].upper() + miolo[1:].lower()
         else:
-            novo = miolo
+            novo = miolo[0].upper() + miolo[1:].lower()
 
         saida.append(inicio + novo + fim)
 
@@ -180,20 +177,18 @@ def obter_texto(caminho: Path) -> tuple[str, bool]:
 # ============================================================
 
 def extrair_numero_ano(texto: str):
-    """
-    Procura o número/ano no próprio documento.
-    O padrão final usa hífen, mesmo quando o PDF original usa barra.
-    """
-    cabecalho = texto[:7000]
+    """Extrai número e ano mesmo quando a data aparece por extenso."""
+    cabecalho = texto[:9000]
 
     padroes = [
+        r"\bN[º°o]\s*(\d{1,6})\s*,?\s*DE\s+.*?\b(19\d{2}|20\d{2})\b",
         r"\bN[º°o]\s*(\d{1,6})\s*[-/]\s*(\d{4})\b",
         r"\bN[º°o]\s*(\d{1,6})\s+DE\s+(\d{4})\b",
         r"\b(\d{1,6})\s*[-/]\s*(20\d{2}|19\d{2})\b",
     ]
 
     for padrao in padroes:
-        m = re.search(padrao, cabecalho, re.IGNORECASE)
+        m = re.search(padrao, cabecalho, re.IGNORECASE | re.DOTALL)
         if m:
             return m.group(1), m.group(2)
 
@@ -204,43 +199,62 @@ def extrair_numero_ano(texto: str):
 # EMENTA INTELIGENTE
 # ============================================================
 
-def extrair_ementa(texto: str, limite: int = 300) -> Optional[str]:
+def extrair_ementa(texto: str, limite: int = 260) -> Optional[str]:
     """
-    Seleciona um trecho contínuo do texto original.
-    Não cria resumo e não usa reticências.
-    Para ementas longas, tenta encerrar em pontuação natural.
+    Extrai a ementa do bloco imediatamente posterior ao cabeçalho formal.
+    Não cria resumo e nunca usa reticências.
     """
     texto = limpar_espacos(texto)
-    candidatos = []
 
-    padrao_inicio = (
-        r"\b(?:dispõe|institui|cria|autoriza|estabelece|"
-        r"regulamenta|altera|fixa|concede|declara)\b"
+    cabecalho = re.compile(
+        r"\b(?:LEI MUNICIPAL|LEI COMPLEMENTAR|PROJETO DE LEI|"
+        r"PROJETO DE DECRETO|PROJETO DE RESOLUÇÃO|"
+        r"DECRETO(?: MUNICIPAL)?|RESOLUÇÃO)\s+"
+        r"N[º°o]\s*\d{1,6}\b",
+        re.IGNORECASE,
     )
 
-    for m in re.finditer(padrao_inicio, texto, re.IGNORECASE):
-        trecho = texto[m.start():m.start() + 1000]
-        finais = [x.end() for x in re.finditer(r"[.;!?]", trecho[:limite])]
-
-        if finais:
-            candidato = trecho[:finais[-1]].strip()
-            if len(candidato) >= 45:
-                candidatos.append(candidato)
-
-    if not candidatos:
+    matches = list(cabecalho.finditer(texto))
+    if not matches:
         return None
 
-    # Procura uma descrição suficientemente informativa.
-    candidatos.sort(key=lambda x: abs(len(x) - 180))
-    escolhido = candidatos[0]
+    m = matches[0]
+    depois = texto[m.end():m.end() + 1400]
 
-    if len(escolhido) > limite:
-        trecho = escolhido[:limite]
-        corte = max(trecho.rfind("."), trecho.rfind(";"), trecho.rfind(","))
-        if corte >= 80:
-            escolhido = trecho[:corte + 1].strip()
+    # Remove a data do cabeçalho: ", DE 19 DE FEVEREIRO DE 2025."
+    depois = re.sub(
+        r"^\s*,?\s*DE\s+.*?\b(?:19|20)\d{2}\b(?:\s*[—–-]\s*[^“\"]*)?",
+        "",
+        depois,
+        count=1,
+        flags=re.IGNORECASE,
+    ).strip(" .:-")
 
-    return escolhido
+    aspas = re.search(r"[“\"]\s*(.+?)\s*[”\"]", depois)
+    if aspas:
+        candidato = limpar_espacos(aspas.group(1))
+    else:
+        parada = re.search(
+            r"\b(?:O PREFEITO|A PREFEITA|O PRESIDENTE|A PRESIDENTE|"
+            r"RESOLVE:|DECRETA:|Art\.?\s*1º?)\b",
+            depois,
+            re.IGNORECASE,
+        )
+        candidato = depois[:parada.start()] if parada else depois
+        candidato = limpar_espacos(candidato).strip(" -–—:;")
+
+    if len(candidato) < 15:
+        return None
+
+    if len(candidato) <= limite:
+        return candidato
+
+    trecho = candidato[:limite]
+    corte = max(trecho.rfind("."), trecho.rfind(";"), trecho.rfind(","))
+    if corte >= 80:
+        return trecho[:corte + 1].strip()
+
+    return trecho.rsplit(" ", 1)[0].rstrip(" ,;:.")
 
 
 # ============================================================
@@ -280,25 +294,37 @@ def extrair_vereador(texto: str) -> Optional[str]:
 # ============================================================
 
 def extrair_pessoa_portaria(texto: str, verbos: tuple[str, ...]) -> Optional[str]:
+    """Extrai a pessoa nomeada/exonerada do Art. 1º ou da ementa."""
+    padroes = []
+
     for verbo in verbos:
-        padrao = (
+        padroes.append(
             rf"\b{re.escape(verbo)}\b\s+(?:o|a)?\s*"
             rf"(?:Sr\.?|Sra\.?|Dr\.?|Dra\.?)?\s*"
-            rf"([A-ZÀ-Ý][A-Za-zÀ-ÿ'’-]+"
-            rf"(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'’-]+){{1,8}})"
+            rf"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){{1,8}})"
         )
 
-        m = re.search(padrao, texto, re.IGNORECASE)
-        if m:
-            nome = re.split(
-                r"\b(?:para|ao|à|no|na|ocupante|cargo|função|funcao)\b",
-                m.group(1),
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )[0].strip()
+    if "exonerar" in verbos:
+        padroes.append(
+            r"\bexonera(?:ção|cao)\b\s+(?:de\s+)?(?:ofício\s+)?"
+            r"(?:do|da)\s+(?:Sr\.?|Sra\.?|Dr\.?|Dra\.?)?\s*"
+            r"([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]+){{1,8}})"
+        )
 
-            if len(nome.split()) >= 2:
-                return formatar_titulo(nome)
+    for padrao in padroes:
+        m = re.search(padrao, texto, re.IGNORECASE)
+        if not m:
+            continue
+
+        nome = re.split(
+            r"\b(?:inscrito|inscrita|com|para|ao|à|no|na|ocupante|cargo|função|funcao|servidor|servidora|CPF|matrícula|matricula)\b",
+            m.group(1),
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0].strip(" ,.-")
+
+        if len(nome.split()) >= 2:
+            return formatar_titulo(nome)
 
     return None
 
